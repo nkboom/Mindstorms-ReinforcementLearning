@@ -1,11 +1,11 @@
-#Q Learning - Mindstorms
+#SARSA Learning - Mindstorms
 import random
 from random import choice
 from random import sample
 import argparse
-import GitQ
+import GitSARSA
 
-#Read in Command-Line Arguments via argparse - python MindQ.py --Iter <#> --Rand <0 or 1> --HappyStart <#> --TargetLocation <#>
+#Read in Command-Line Arguments via argparse - MindSARSA.py --Iter <#> --HappyStart <#> --Rand <0 or 1> --TargetLocation <#>
 parser = argparse.ArgumentParser()
 parser.add_argument("--Iter", type=int, default = None)
 parser.add_argument("--Rand", type=int, default = None)
@@ -30,6 +30,7 @@ if args.Rand == 1:
     print "TargetLocation: " + str(TargetLocation)
           
     Cliff1 = [1,2,3,4,5,6,7,8,9,16,17,24,25,32,33,40,41,42,43,44,45,46,47,48,49]
+    TopRow = [34,35,36,37,38,39]
     Cliff2 = random.sample([10,11,12,13,14,15,18,19,20,21,22,23,26,27,28,29,30,31,34,35,36,37,38,39], 4)
     for number in Cliff2:
         while number == HappyStart or number == TargetLocation:
@@ -39,6 +40,7 @@ if args.Rand == 1:
 if args.Rand == 0:
     Cliff1 = [1,2,3,4,5,6,7,8,9,16,17,24,25,32,33,40,41,42,43,44,45,46,47,48,49]
     Cliff2 = [11,12,13,14]
+    TopRow = [34,35,36,37,38,39]
 if args.HappyStart is not None:
     HappyStart = args.HappyStart
 if args.TargetLocation is not None:
@@ -308,12 +310,13 @@ def goBacktoStart(mindmoveback):
     else:
         print "Didn't Work!"
 
-#Call class Qlearn from file GitQ.py
-AI = GitQ.QLearn(actions=directions, epsilon=0.1, alpha=0.2, gamma=0.9)
 
-#Sets up State Space and Layout of Grid Mindstorms will be moving on and learning from (using QLearning Algorithm)
+#Call class SARSA from file GitSARSA.py
+AI = GitSARSA.Sarsa(actions=directions, epsilon=0.1, alpha=0.2, gamma=0.9)
+
+#Sets up State Space and Layout of Grid Mindstorms will be moving on and learning from (using SARSA learning algorithm)
 HappyLastAction = None
-for number in range(1500):
+for number in range(2000000):
     if number < Iter + 1: 
         if HappyLastAction is None:
             HappyLastState = HappyStart
@@ -321,42 +324,63 @@ for number in range(1500):
             HappyLastAction = AI.chooseAction(HappyLastState)
             goInDirection(HappyLastAction)
             HappyCurrentState = HappyLastState + HappyLastAction
-                
+            HappyCurrentAction = AI.chooseAction(HappyCurrentState)
+
+            if HappyLastAction == -HappyCurrentAction:
+                reward = -50
+                AI.learn(HappyLastState, HappyLastAction, reward, HappyCurrentState, HappyCurrentAction)
+                HappyLastState = HappyCurrentState
+                HappyLastAction = HappyCurrentAction
+                goInDirection(HappyLastAction)
+                HappyCurrentState = HappyCurrentState + HappyLastAction
+                HappyCurrentAction = AI.chooseAction(HappyCurrentState)
+                print "HappyFace RETRACED steps"
             if HappyCurrentState in Cliff1 or HappyCurrentState in Cliff2:
                 reward = -100
-                AI.learn(HappyLastState, HappyLastAction, reward, HappyCurrentState)
+                AI.learn(HappyLastState, HappyLastAction, reward, HappyCurrentState, HappyCurrentAction)
                 print "END: (Cliff Fall): " + str(HappyCurrentState) + ". REWARD: " + str(reward) + "."
                 goBacktoStart(HappyCurrentState)
                 HappyLastAction = None
             else:
                 reward = -1
-                AI.learn(HappyLastState, HappyLastAction, reward, HappyCurrentState)
+                AI.learn(HappyLastState, HappyLastAction, reward, HappyCurrentState, HappyCurrentAction)
                 print "HappyFace: " + str(HappyCurrentState) + ". REWARD: " + str(reward) + "."
                 HappyLastState = HappyCurrentState
-                HappyLastAction = AI.chooseAction(HappyLastState)
+                HappyLastAction = HappyCurrentAction
                 goInDirection(HappyLastAction)
                 HappyCurrentState = HappyCurrentState + HappyLastAction
+                HappyCurrentAction = AI.chooseAction(HappyCurrentState)
                             
         if HappyLastAction is not None:
         
+            if HappyLastAction == -HappyCurrentAction:
+                reward = -50
+                AI.learn(HappyLastState, HappyLastAction, reward, HappyCurrentState, HappyCurrentAction)
+                HappyLastState = HappyCurrentState
+                HappyLastAction = HappyCurrentAction
+                goInDirection(HappyLastAction)
+                HappyCurrentState = HappyCurrentState + HappyLastAction
+                HappyCurrentAction = AI.chooseAction(HappyCurrentState)
+                print "HappyFace RETRACED steps"
             if HappyCurrentState in Cliff1 or HappyCurrentState in Cliff2:
                 reward = -100
-                AI.learn(HappyLastState, HappyLastAction, reward, HappyCurrentState)
+                AI.learn(HappyLastState, HappyLastAction, reward, HappyCurrentState, HappyCurrentAction)
                 print "END: (Cliff Fall): " + str(HappyCurrentState) + ". REWARD: " + str(reward) + "."
                 goBacktoStart(HappyCurrentState)
                 HappyLastAction = None
             elif HappyCurrentState in Goal:
-                reward = 0
+                reward = 10
                 print "END: (Goal): " + str(HappyCurrentState) + ". REWARD: " + str(reward) + "."
-                AI.learn(HappyLastState, HappyLastAction, reward, HappyCurrentState)
+                AI.learn(HappyLastState, HappyLastAction, reward, HappyCurrentState, HappyCurrentAction)
                 goBacktoStart(HappyCurrentState)
                 HappyLastAction = None
-            else:
+            else:     
                 reward = -1
-                AI.learn(HappyLastState, HappyLastAction, reward, HappyCurrentState)
+                AI.learn(HappyLastState, HappyLastAction, reward, HappyCurrentState, HappyCurrentAction)
                 print "HappyFace: " + str(HappyCurrentState) + ". REWARD: " + str(reward) + "."
                 HappyLastState = HappyCurrentState
-                HappyLastAction = AI.chooseAction(HappyLastState)
+                HappyLastAction = HappyCurrentAction
                 goInDirection(HappyLastAction)
                 HappyCurrentState = HappyLastState + HappyLastAction
+                HappyCurrentAction = AI.chooseAction(HappyCurrentState)
         
